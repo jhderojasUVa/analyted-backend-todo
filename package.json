@@ -1,0 +1,39 @@
+{
+  "name": "analyted-backend-todo",
+  "version": "1.0.0",
+  "description": "AnalyTED backend in Node example",
+  "main": "./src/index.js",
+  "scripts": {
+    "prepare": "husky install",
+    "pre-commit": "lint-staged --relative",
+    "release": "standard-version",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^17.0.3",
+    "@commitlint/config-conventional": "^17.0.3",
+    "@sky-uk/eslint-config-sky": "^34.0.0",
+    "eslint": "^8.2.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-import": "^2.25.2",
+    "eslint-plugin-jest": "^26.5.3",
+    "husky": "^8.0.1",
+    "lint-staged": "^10.5.4",
+    "sass-lint": "^1.13.1",
+    "standard-version": "^9.5.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jhderojasUVa/analyted-backend-todo.git"
+  },
+  "author": "Jesus Angel Hernandez de Rojas",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jhderojasUVa/analyted-backend-todo/issues"
+  },
+  "homepage": "https://github.com/jhderojasUVa/analyted-backend-todo#readme",
+  "dependencies": {
+    "express": "^4.18.1"
+  }
+}
