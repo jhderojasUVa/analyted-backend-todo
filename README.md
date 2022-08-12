@@ -17,6 +17,8 @@ All responses are JSON based.
 
 ## GET /
 
+Response:
+
 ```json
 {
     "success": true,
@@ -26,7 +28,7 @@ All responses are JSON based.
                     "id": "UNIQUE-ID",
                     "description": "Description of the TODO",
                     "completed": 0 || 1,
-                    "date": "UTC LONG FORMAT DATE"
+                    "date": "UNIX LONG FORMAT DATE"
                 }
             ],
             "rowCount": 0
@@ -34,7 +36,7 @@ All responses are JSON based.
 }
 ```
 
-Example of a response:
+Example Response:
 
 ```json
 {
@@ -57,6 +59,8 @@ Example of a response:
 
 The same than the previous but the result will be only one.
 
+Response:
+
 ```json
 {
     "success": true,
@@ -71,5 +75,56 @@ The same than the previous but the result will be only one.
 }
 ```
 
-## PUT /
+## POST /
 
+Add one new item. Body to send.
+
+Body:
+
+```json
+{
+    "description": "YOUR DESCRIPTION HERE",
+    "completed": 0 || 1
+}
+```
+
+Response:
+
+```json
+{
+    "success": true
+}
+```
+
+## DELETE /:id
+
+Removes a todo from the database by id.
+
+Response:
+
+```json
+{
+    "success": true
+}
+```
+
+## PUT /:id
+
+Update a todo on the database by id. It always set the date as the time the petittion is done.
+
+Body:
+
+```json
+{
+    "description": "YOUR NEW DESCRIPTION HERE",
+    "completed": 0 || 1,
+}
+```
+
+Response:
+
+```json
+{
+    "success": true
+}
+```
