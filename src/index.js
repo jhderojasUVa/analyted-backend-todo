@@ -7,17 +7,17 @@ const responses = require('./responses.js');
 
 // uid generator
 const uuid = require('uuid');
-const { response } = require('express');
 
 // express configuration
 const app = express();
+const hostname = '0.0.0.0';
 const port = 8080;
 // use JSON as put format
 app.use(express.json());
 
 // Tedious configuration and start up
 const config = {
-    server: 'localhost',
+    server: '172.18.0.2',
     authentication: {
         type: 'default',
         options: {
@@ -207,8 +207,8 @@ connection.on('connect', (err) => {
         }
     });
 
-    app.listen(port, () => {
-        console.log(`Express server running and listening to port ${port}`);
+    app.listen(port, hostname, () => {
+        console.log(`Express server running at ${hostname} and listening to port ${port}`);
     });
 });
 
