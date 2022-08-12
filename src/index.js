@@ -57,24 +57,46 @@ connection.on('connect', (err) => {
     
     // Get all todos
     app.get('/', (req, res) => {
-        const request = new Request('SELECT id, description, completed, date FROM Todo ORDER BY date DESC', (err, rowCount, rows) => {
+        // Initialice
+        var rows = [];
+        var rowCount = 0;
+
+        const request = new Request('SELECT id, description, completed, date FROM Todo ORDER BY date DESC', (err, rowNumber) => {
             // if error on the query
             if (err) {
                 res.json(responses.errorResponse('Error at query'));
             }
 
-            // if not, send everthing to the client
+            // Set total of rows
+            rowCount = rowNumber;
+        });
+
+        request.on('row', (data) => {
+            rows.push({
+                [data[0].metadata.colName]: data[0].value,
+                [data[1].metadata.colName]: String(data[1].value).trim(),
+                [data[2].metadata.colName]: data[2].value,
+                [data[3].metadata.colName]: Number(data[3].value),
+            });
+        });
+
+        request.on('requestCompleted', () => {
             res.json(responses.basicOkResponse({
                 rows,
                 rowCount,
             }));
         });
         
+        // Execute the SQL
         connection.execSql(request);
     });
 
     app.get('/:id', (req, res) => {
-        const request = new Request(`SELECT id, description, completed, date FROM Todo WHERE id="${req.params.id}" ORDER BY date DESC`, (err, rowCount, rows) => {
+        // Initialice
+        var rows = [];
+        var rowCount = 0;
+
+        const request = new Request(`SELECT id, description, completed, date FROM Todo WHERE id='${req.params.id}' ORDER BY date DESC`, (err, rowNumber) => {
             // if error on the query
             if (err) {
                 res.json(responses.errorResponse('Error at query'));
@@ -82,12 +104,26 @@ connection.on('connect', (err) => {
             }
 
             // if not, send everthing to the client
+            rowCount = rowNumber;
+        });
+
+        request.on('row', (data) => {
+            rows.push({
+                [data[0].metadata.colName]: data[0].value,
+                [data[1].metadata.colName]: String(data[1].value).trim(),
+                [data[2].metadata.colName]: data[2].value,
+                [data[3].metadata.colName]: Number(data[3].value),
+            });
+        });
+
+        request.on('requestCompleted', () => {
             res.json(responses.basicOkResponse({
                 rows,
                 rowCount,
             }));
         });
-        
+
+        // Execute the SQL
         connection.execSql(request);
     });
 
@@ -102,18 +138,7 @@ connection.on('connect', (err) => {
 
         const date = Date.now();
 
-        // const rrr = {
-        //     id: uuid.v1(),
-        //     description,
-        //     completed,
-        //     date,
-        // };
-
-        // console.log(rrr)
-
-        // res.json(responses.basicOkResponse({}));
-
-        const request = new Request(`INSERT INTO Todo (id, description, completed, value) VALUES ("${uuid.v1()}", "${description}", "${completed}", "${date}"`, (err) => {
+        const request = new Request(`INSERT INTO Todo (id, description, completed, value) VALUES ('${uuid.v1()}', '${description}', '${completed}', '${date}'`, (err) => {
             if (err) {
                 res.json(responses.errorResponse(err));
                 return;
@@ -131,5 +156,6 @@ connection.on('connect', (err) => {
 });
 
 // Do the connection and trigger express server
+console.log('Please wait while we are connecting to the database...');
 connection.connect();
 

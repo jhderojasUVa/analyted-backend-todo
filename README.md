@@ -34,14 +34,39 @@ All responses are JSON based.
 }
 ```
 
-## GET /{id}
+Example of a response:
 
 ```json
 {
     "success": true,
     "data": {
-            "rows": [],
-            "rowCount": 0
+        "rows": [
+            {
+                "id": "9DF788A0-1A29-11ED-8739-679AC04E7140",
+                "description": "some text",
+                "completed": false,
+                "date": 1660300156458
+            }
+        ],
+        "rowCount": 1
+    }
+}
+```
+
+## GET /{id}
+
+The same than the previous but the result will be only one.
+
+```json
+{
+    "success": true,
+    "data": {
+            "rows": [
+                {
+                    // See previous example
+                }
+            ],
+            "rowCount": 1
         }
 }
 ```
