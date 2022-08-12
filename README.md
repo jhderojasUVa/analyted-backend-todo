@@ -128,3 +128,10 @@ Response:
     "success": true
 }
 ```
+
+# Preparation
+
+1. Create a docker network `docker network create analyted_network`
+2. Run the [analyted-database-todo](https://github.com/jhderojasUVa/analyted-database-todo) docker image (see their documentation)
+3. Run a `docker network inspect analyted_network` and check the IP where `sqltodo` is running
+4. Change on the `src/index.js` the ip of the server 
