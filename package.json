@@ -4,6 +4,8 @@
   "description": "AnalyTED backend in Node example",
   "main": "./src/index.js",
   "scripts": {
+    "docker:build": "docker build -t analyted-backend .",
+    "docker:run": "docker run -p 8080:8080 --network=host analyted-backend",
     "server": "node ./src/index.js",
     "prepare": "husky install",
     "pre-commit": "lint-staged --relative",
