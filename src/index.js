@@ -25,7 +25,7 @@ app.use((req, res, next) => {
 
 // Tedious configuration and start up
 const config = {
-    server: '172.18.0.2'
+    server: '172.18.0.2',
     // server: 'localhost',
     authentication: {
         type: 'default',
