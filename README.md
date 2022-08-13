@@ -135,3 +135,24 @@ Response:
 2. Run the [analyted-database-todo](https://github.com/jhderojasUVa/analyted-database-todo) docker image (see their documentation)
 3. Run a `docker network inspect analyted_network` and check the IP where `sqltodo` is running
 4. Change on the `src/index.js` the ip of the server 
+
+# Docker login/build/run/pull
+
+For login into Github repository:
+
+- `npm run docker:login`
+
+For building:
+
+- `npm run docker:build`. To build the latest versions
+- `npm run docker:build <version>`. To build the a concrete version
+
+For running:
+
+- `npm run docker:run`. To run the latest versions
+- `npm run docker:run <version>`. To run the a concrete version
+
+For pulling (**You need to be logged in and with rights to do it**):
+
+- `npm run docker:pull`. To run the latest versions
+- `npm run docker:pull <version>`. To run the a concrete version
