@@ -12,12 +12,21 @@ const uuid = require('uuid');
 const app = express();
 const hostname = '0.0.0.0';
 const port = 8080;
+
 // use JSON as put format
 app.use(express.json());
 
+// Allow any origin
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
+
 // Tedious configuration and start up
 const config = {
-    server: '172.18.0.2',
+    // server: '172.18.0.2'
+    server: 'localhost',
     authentication: {
         type: 'default',
         options: {
@@ -26,7 +35,7 @@ const config = {
         }
     },
     options: {
-        encrypt: true,
+        encrypt: false,
         trustedConnection: true,
         trustServerCertificate: true,
         database: 'ToDos',
