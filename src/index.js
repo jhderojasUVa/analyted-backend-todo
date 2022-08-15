@@ -13,20 +13,31 @@ const app = express();
 const hostname = '0.0.0.0';
 const port = 8080;
 
+// database true/false translator
+const trueOrfalse = {
+    true: 1,
+    false: 0,
+}
+
 // use JSON as put format
 app.use(express.json());
+
+const currentDate = () => {
+    return new Date();
+}
 
 // Allow any origin
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
     next();
 });
 
 // Tedious configuration and start up
 const config = {
-    server: '172.18.0.2',
-    // server: 'localhost',
+    // server: '172.18.0.2',
+    server: 'localhost',
     authentication: {
         type: 'default',
         options: {
@@ -59,7 +70,7 @@ connection.on('connect', (err) => {
         console.log('Connected to the database successfully!');
         // Health check
         app.get('/health', (req, res) => {
-            console.log('Hit: Health point');
+            console.log(`[${currentDate()}]: Hit: Health point`);
             res.json(responses.basicOkResponse);
         });
     }
@@ -90,6 +101,7 @@ connection.on('connect', (err) => {
         });
 
         request.on('requestCompleted', () => {
+            console.log(`[${currentDate()}]: GET /`);
             res.json(responses.basicOkResponse({
                 rows,
                 rowCount,
@@ -129,12 +141,14 @@ connection.on('connect', (err) => {
             });
     
             request.on('requestCompleted', () => {
+                console.log(`GET /${req.params.id}`);
                 res.json(responses.basicOkResponse({
                     rows,
                     rowCount,
                 }));
             });
     
+            console.log(`[${currentDate()}]: GET /${req.params.id}`);
             // Execute the SQL
             connection.execSql(request);
         } else {
@@ -148,7 +162,7 @@ connection.on('connect', (err) => {
         const { description, completed } = req.body;
         
         // Basic check
-        if (description === undefined || completed === undefined) {
+        if (description === undefined || ![0, 1].includes(trueOrfalse[completed])) {
             res.json(responses.errorResponse('Error on JSON data'));
             return;
         }
@@ -156,12 +170,13 @@ connection.on('connect', (err) => {
         // date is always when you do the thing
         const date = Date.now();
 
-        const request = new Request(`INSERT INTO Todo (id, description, completed, date) VALUES ('${uuid.v1()}', '${description}', ${completed}, ${date})`, (err) => {
+        const request = new Request(`INSERT INTO Todo (id, description, completed, date) VALUES ('${uuid.v1()}', '${description.trim()}', ${trueOrfalse[completed]}, ${date})`, (err) => {
             if (err) {
                 res.json(responses.errorResponse(err));
                 return;
             }
 
+            console.log(`[${currentDate()}]: POST /`);
             res.json(responses.basicOkResponse());
         });
 
@@ -180,6 +195,7 @@ connection.on('connect', (err) => {
                 res.json(responses.basicOkResponse());
             });
 
+            console.log(`[${currentDate()}]: DELETE /${req.params.id}`);
             connection.execSql(request);
         } else {
             res.json(responses.errorResponse('No ID!'));
@@ -192,8 +208,9 @@ connection.on('connect', (err) => {
             // decouple body
             const { description, completed } = req.body;
 
-            // check if body has what is needed
-            if (description && completed) {
+            // check if body has what is needed and 
+            // translate and check completed
+            if (description && [0, 1].includes(trueOrfalse[completed])) {
                 // date is always when you do the thing
                 const date = Date.now();
 
@@ -206,6 +223,7 @@ connection.on('connect', (err) => {
                     res.json(responses.basicOkResponse());
                 });
     
+                console.log(`[${currentDate()}]: PUT /${req.params.id}`);
                 connection.execSql(request);
             } else {
                 res.json(responses.errorResponse('Bad body data'));
