@@ -6,6 +6,7 @@
   "scripts": {
     "docker:login": "docker login ghcr.io",
     "docker:build": "./scripts/docker-build.sh",
+    "docker:push": "./scripts/docker-push.sh",
     "docker:pull": "./scripts/docker-pull.sh",
     "docker:run": "./scripts/docker-run.sh",
     "server": "node ./src/index.js",

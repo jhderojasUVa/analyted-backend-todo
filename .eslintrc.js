@@ -10,7 +10,7 @@ module.exports = {
       // jest
       'plugin:jest/recommended',
       // Sky standard configuration for JS
-      '@sky-uk/eslint-config-sky/packages/eslint-config-sky',
+      //'@sky-uk/eslint-config-sky/packages/eslint-config-sky',
       // standard prettier
       'prettier',
       // recommended for Cypress
