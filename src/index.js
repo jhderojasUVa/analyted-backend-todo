@@ -153,6 +153,7 @@ connection.on('connect', (err) => {
             connection.execSql(request);
         } else {
             res.json(responses.errorResponse('No ID!'));
+            return;
         }
 
     });
@@ -199,6 +200,7 @@ connection.on('connect', (err) => {
             connection.execSql(request);
         } else {
             res.json(responses.errorResponse('No ID!'));
+            return;
         }
     });
 
@@ -231,6 +233,7 @@ connection.on('connect', (err) => {
             }
         } else {
             res.json(responses.errorResponse('No ID!'));
+            return;
         }
     });
 
