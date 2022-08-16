@@ -6,7 +6,7 @@ VERSION=$1
 # Remember that you must be login in
 if [ -z "$1" ]
 then
-    docker pull ghcr.io/analyted-backend:$1
+    docker pull ghcr.io/jhderojasuva/analyted-backend-todo/analyted-backend:$1
 else
-    docker pull ghcr.io/analyted-backend:latest 
+    docker pull ghcr.io/jhderojasuva/analyted-backend-todo/analyted-backend:latest 
 fi

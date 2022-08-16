@@ -152,7 +152,12 @@ For running:
 - `npm run docker:run`. To run the latest versions
 - `npm run docker:run <version>`. To run the a concrete version
 
-For pulling (**You need to be logged in and with rights to do it**):
+For pulling:
 
 - `npm run docker:pull`. To run the latest versions
 - `npm run docker:pull <version>`. To run the a concrete version
+
+For pushing (**You need to be logged in and with rights to do it**):
+
+- `npm run docker:push`. To run the latest versions
+- `npm run docker:push <version>`. To run the a concrete version
