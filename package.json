@@ -1,6 +1,6 @@
 {
   "name": "analyted-backend-todo",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "AnalyTED backend in Node example",
   "main": "./src/index.js",
   "scripts": {
