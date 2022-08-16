@@ -216,7 +216,7 @@ connection.on('connect', (err) => {
                 // date is always when you do the thing
                 const date = Date.now();
 
-                const request = new Request(`UPDATE Todo SET description = '${description}', completed = ${completed}, date = ${date} WHERE id = '${req.params.id}'`, (err) => {
+                const request = new Request(`UPDATE Todo SET description = '${description}', completed = ${trueOrfalse[completed]}, date = ${date} WHERE id = '${req.params.id}'`, (err) => {
                     if (err) {
                         res.json(responses.errorResponse(err));
                         return;
