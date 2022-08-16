@@ -120,7 +120,7 @@ connection.on('connect', (err) => {
 
         if (req.params.id) {
             // Search for it
-            const request = new Request(`SELECT id, description, completed, date FROM Todo WHERE id='${req.params.id}' ORDER BY date DESC`, (err, rowNumber) => {
+            const request = new Request(`SELECT id, description, completed, date FROM Todo WHERE id='${req.params.id}'`, (err, rowNumber) => {
                 // if error on the query
                 if (err) {
                     res.json(responses.errorResponse('Error at query'));
