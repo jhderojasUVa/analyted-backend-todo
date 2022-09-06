@@ -1,3 +1,6 @@
+// Dot env variables
+require('dotenv').config();
+
 // Simple express server
 const express = require('express');
 const { Connection, Request } = require('tedious');
@@ -36,8 +39,7 @@ app.use((req, res, next) => {
 
 // Tedious configuration and start up
 const config = {
-    server: '172.18.0.2',
-    // server: 'localhost',
+    server: process.env.NO_DOCKER ? 'localhost' : 'sqltodo',
     authentication: {
         type: 'default',
         options: {
