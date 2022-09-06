@@ -39,7 +39,7 @@ app.use((req, res, next) => {
 
 // Tedious configuration and start up
 const config = {
-    server: process.env.NO_DOCKER ? 'localhost' : 'sqltodo',
+    server: process.env.NO_DOCKER === 'true' ? 'localhost' : 'sqltodo',
     authentication: {
         type: 'default',
         options: {
