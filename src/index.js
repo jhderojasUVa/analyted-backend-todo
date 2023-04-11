@@ -59,24 +59,26 @@ const config = {
 const connection = new Connection(config);
 
 // Trigger express only if connection is sucessfully
+let connected_db = true;
+
 connection.on('connect', (err) => {
     if (err) {
-        console.log('There was an error connecting to the database');
+        console.log('There was an error connecting to the database!');
         console.log(err);
-        // Health check
-        app.get('/health', (req, res) => {
-            console.log('Hit: Health point');
-            res.json(responses.errorResponse('Unable to connect to databse'));
-        });
-    } else {
-        console.log('Connected to the database successfully!');
-        // Health check
-        app.get('/health', (req, res) => {
-            console.log(`[${currentDate()}]: Hit: Health point`);
-            res.json(responses.basicOkResponse);
-        });
+        connected_db = false;
     }
-    
+
+    app.get('/health', (req, res) => {
+        console.log(`[${currentDate()}]: Hit: Health pointc OK, database check: ${connected_db}`);
+        res.json({ health: true, db_connection: connected_db });
+        return;
+    });
+
+    app.get('/*', (req, res) => {
+        console.log(`[${currentDate()}]: Petition for something we don't need to answer...`);
+        return;
+    });
+
     // Get all todos
     app.get('/', (req, res) => {
         // Initialice
@@ -86,7 +88,7 @@ connection.on('connect', (err) => {
         const request = new Request('SELECT id, description, completed, date FROM Todo ORDER BY date DESC', (err, rowNumber) => {
             // if error on the query
             if (err) {
-                res.json(responses.errorResponse('Error at query'));
+                res.json(responses.errorResponse('Error at query SELECT ALL'));
             }
 
             // Set total of rows
@@ -109,7 +111,7 @@ connection.on('connect', (err) => {
                 rowCount,
             }));
         });
-        
+
         // Execute the SQL
         connection.execSql(request);
     });
@@ -119,20 +121,20 @@ connection.on('connect', (err) => {
         // Initialice
         var rows = [];
         var rowCount = 0;
-
         if (req.params.id) {
+
             // Search for it
             const request = new Request(`SELECT id, description, completed, date FROM Todo WHERE id='${req.params.id}'`, (err, rowNumber) => {
                 // if error on the query
                 if (err) {
-                    res.json(responses.errorResponse('Error at query'));
+                    res.json(responses.errorResponse('Error at query SELECT ONE'));
                     return;
                 }
-    
+
                 // if not, send everthing to the client
                 rowCount = rowNumber;
             });
-    
+
             request.on('row', (data) => {
                 rows.push({
                     [data[0].metadata.colName]: data[0].value,
@@ -141,7 +143,7 @@ connection.on('connect', (err) => {
                     [data[3].metadata.colName]: Number(data[3].value),
                 });
             });
-    
+
             request.on('requestCompleted', () => {
                 console.log(`GET /${req.params.id}`);
                 res.json(responses.basicOkResponse({
@@ -149,7 +151,6 @@ connection.on('connect', (err) => {
                     rowCount,
                 }));
             });
-    
             console.log(`[${currentDate()}]: GET /${req.params.id}`);
             // Execute the SQL
             connection.execSql(request);
@@ -157,13 +158,12 @@ connection.on('connect', (err) => {
             res.json(responses.errorResponse('No ID!'));
             return;
         }
-
     });
 
     // Add a new todo
     app.post('/', (req, res) => {
         const { description, completed } = req.body;
-        
+
         // Basic check
         if (description === undefined || ![0, 1].includes(trueOrfalse[completed])) {
             res.json(responses.errorResponse('Error on JSON data'));
@@ -194,7 +194,7 @@ connection.on('connect', (err) => {
                     res.json(responses.errorResponse(err));
                     return;
                 }
-    
+
                 res.json(responses.basicOkResponse());
             });
 
@@ -223,10 +223,10 @@ connection.on('connect', (err) => {
                         res.json(responses.errorResponse(err));
                         return;
                     }
-        
+
                     res.json(responses.basicOkResponse());
                 });
-    
+
                 console.log(`[${currentDate()}]: PUT /${req.params.id}`);
                 connection.execSql(request);
             } else {
@@ -237,6 +237,11 @@ connection.on('connect', (err) => {
             res.json(responses.errorResponse('No ID!'));
             return;
         }
+    });
+
+    // Health check
+    app.get('/*', (req, res) => {
+        console.log('* called OK')
     });
 
     app.listen(port, hostname, () => {
