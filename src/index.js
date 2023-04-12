@@ -54,6 +54,22 @@ const config = {
         database: 'ToDos',
     },
 };
+// const config = {
+//     server: process.env.NO_DOCKER === 'true' ? 'localhost' : 'sqltodo',
+//     authentication: {
+//         type: 'default',
+//         options: {
+//             userName: 'sa',
+//             password: 'yourStrong(!)Password',
+//         }
+//     },
+//     options: {
+//         encrypt: false,
+//         trustedConnection: true,
+//         trustServerCertificate: true,
+//         database: 'ToDos',
+//     },
+// };
 
 console.log('=============================================');
 console.log('Configuration:');
@@ -62,45 +78,86 @@ console.log('=============================================');
 
 
 // connect to the database
-let connection = undefined;
+const connection = new Connection(config);
 
-const getConnection = async () => {
-    // check if there's connection
-    if (connection) {
-        return connection;
+// Trigger express only if connection is sucessfully
+let connected_db = true;
+
+connection.on('connect', (err) => {
+    if (err) {
+        console.log('There was an error connecting to the database!');
+        console.log(err);
+        connected_db = false;
+    } else {
+        console.log('== DB Connection done! ==');
     }
 
-    // if not return connection
-    return new Connection(config);
-}
+    // Get all todos
+    app.get('/', (req, res) => {
+        // Initialice
+        var rows = [];
+        var rowCount = 0;
 
-// http server
-let server_on = false;
+        const request = new Request('SELECT id, description, completed, date FROM Todo ORDER BY date DESC', (err, rowNumber) => {
+            // if error on the query
+            if (err) {
+                res.json(responses.errorResponse('Error at query SELECT ALL'));
+            }
 
-const express_http_server = () => {
-    // Trigger express only if connection is sucessfully
-    let connected_db = true;
+            // Set total of rows
+            rowCount = rowNumber;
+        });
 
-    connection.on('connect', (err) => {
-        if (err) {
-            console.log('There was an error connecting to the database!');
-            console.log(err);
-            connected_db = false;
-        }
+        request.on('row', (data) => {
+            rows.push({
+                [data[0].metadata.colName]: data[0].value,
+                [data[1].metadata.colName]: String(data[1].value).trim(),
+                [data[2].metadata.colName]: data[2].value,
+                [data[3].metadata.colName]: Number(data[3].value),
+            });
+        });
 
-        // Get all todos
-        app.get('/', (req, res) => {
-            // Initialice
-            var rows = [];
-            var rowCount = 0;
+        request.on('requestCompleted', () => {
+            console.log(`[${currentDate()}]: GET /`);
+            res.json(responses.basicOkResponse({
+                rows,
+                rowCount,
+            }));
+        });
 
-            const request = new Request('SELECT id, description, completed, date FROM Todo ORDER BY date DESC', (err, rowNumber) => {
+        // Execute the SQL
+        connection.execSql(request);
+    });
+
+    // Health point
+    app.get('/health', (req, res) => {
+        console.log(`[${currentDate()}]: Hit: Health pointc OK, database check: ${connected_db}`);
+        res.json({ health: true, db_connection: connected_db });
+        return;
+    });
+
+    // Anything else
+    app.get('/*', (req, res) => {
+        console.log(`[${currentDate()}]: Petition for something we don't need to answer...`);
+        return;
+    });
+
+    // Get one todo
+    app.get('/:id', (req, res) => {
+        // Initialice
+        var rows = [];
+        var rowCount = 0;
+        if (req.params.id) {
+
+            // Search for it
+            const request = new Request(`SELECT id, description, completed, date FROM Todo WHERE id='${req.params.id}'`, (err, rowNumber) => {
                 // if error on the query
                 if (err) {
-                    res.json(responses.errorResponse('Error at query SELECT ALL'));
+                    res.json(responses.errorResponse('Error at query SELECT ONE'));
+                    return;
                 }
 
-                // Set total of rows
+                // if not, send everthing to the client
                 rowCount = rowNumber;
             });
 
@@ -114,98 +171,80 @@ const express_http_server = () => {
             });
 
             request.on('requestCompleted', () => {
-                console.log(`[${currentDate()}]: GET /`);
+                console.log(`GET /${req.params.id}`);
                 res.json(responses.basicOkResponse({
                     rows,
                     rowCount,
                 }));
             });
-
+            console.log(`[${currentDate()}]: GET /${req.params.id}`);
             // Execute the SQL
             connection.execSql(request);
-        });
+        } else {
+            res.json(responses.errorResponse('No ID!'));
+            return;
+        }
+    });
 
-        // Get one todo
-        app.get('/:id', (req, res) => {
-            // Initialice
-            var rows = [];
-            var rowCount = 0;
-            if (req.params.id) {
+    // Add a new todo
+    app.post('/', (req, res) => {
+        const { description, completed } = req.body;
 
-                // Search for it
-                const request = new Request(`SELECT id, description, completed, date FROM Todo WHERE id='${req.params.id}'`, (err, rowNumber) => {
-                    // if error on the query
-                    if (err) {
-                        res.json(responses.errorResponse('Error at query SELECT ONE'));
-                        return;
-                    }
+        // Basic check
+        if (description === undefined || ![0, 1].includes(trueOrfalse[completed])) {
+            res.json(responses.errorResponse('Error on JSON data'));
+            return;
+        }
 
-                    // if not, send everthing to the client
-                    rowCount = rowNumber;
-                });
+        // date is always when you do the thing
+        const date = Date.now();
 
-                request.on('row', (data) => {
-                    rows.push({
-                        [data[0].metadata.colName]: data[0].value,
-                        [data[1].metadata.colName]: String(data[1].value).trim(),
-                        [data[2].metadata.colName]: data[2].value,
-                        [data[3].metadata.colName]: Number(data[3].value),
-                    });
-                });
-
-                request.on('requestCompleted', () => {
-                    console.log(`GET /${req.params.id}`);
-                    res.json(responses.basicOkResponse({
-                        rows,
-                        rowCount,
-                    }));
-                });
-                console.log(`[${currentDate()}]: GET /${req.params.id}`);
-                // Execute the SQL
-                connection.execSql(request);
-            } else {
-                res.json(responses.errorResponse('No ID!'));
-                return;
-            }
-        });
-
-        // Add a new todo
-        app.post('/', (req, res) => {
-            const { description, completed } = req.body;
-
-            // Basic check
-            if (description === undefined || ![0, 1].includes(trueOrfalse[completed])) {
-                res.json(responses.errorResponse('Error on JSON data'));
+        const request = new Request(`INSERT INTO Todo (id, description, completed, date) VALUES ('${uuid.v1()}', '${description.trim()}', ${trueOrfalse[completed]}, ${date})`, (err) => {
+            if (err) {
+                res.json(responses.errorResponse(err));
                 return;
             }
 
-            // date is always when you do the thing
-            const date = Date.now();
+            console.log(`[${currentDate()}]: POST /`);
+            res.json(responses.basicOkResponse());
+        });
 
-            const request = new Request(`INSERT INTO Todo (id, description, completed, date) VALUES ('${uuid.v1()}', '${description.trim()}', ${trueOrfalse[completed]}, ${date})`, (err) => {
+        connection.execSql(request);
+    });
+
+    // Delete a todo
+    app.delete('/:id', (req, res) => {
+        if (req.params.id) {
+            const request = new Request(`DELETE FROM Todo WHERE id='${req.params.id}'`, (err) => {
                 if (err) {
                     res.json(responses.errorResponse(err));
                     return;
                 }
 
-                console.log(`[${currentDate()}]: POST /`);
                 res.json(responses.basicOkResponse());
             });
 
+            console.log(`[${currentDate()}]: DELETE /${req.params.id}`);
             connection.execSql(request);
-        });
-
-        // Health point
-        app.get('/health', (req, res) => {
-            console.log(`[${currentDate()}]: Hit: Health pointc OK, database check: ${connected_db}`);
-            res.json({ health: true, db_connection: connected_db });
+        } else {
+            res.json(responses.errorResponse('No ID!'));
             return;
-        });
+        }
+    });
 
-        // Delete a todo
-        app.delete('/:id', (req, res) => {
-            if (req.params.id) {
-                const request = new Request(`DELETE FROM Todo WHERE id='${req.params.id}'`, (err) => {
+    // Update a todo
+    app.put('/:id', (req, res) => {
+        if (req.params.id) {
+            // decouple body
+            const { description, completed } = req.body;
+
+            // check if body has what is needed and 
+            // translate and check completed
+            if (description && [0, 1].includes(trueOrfalse[completed])) {
+                // date is always when you do the thing
+                const date = Date.now();
+
+                const request = new Request(`UPDATE Todo SET description = '${description}', completed = ${trueOrfalse[completed]}, date = ${date} WHERE id = '${req.params.id}'`, (err) => {
                     if (err) {
                         res.json(responses.errorResponse(err));
                         return;
@@ -214,85 +253,23 @@ const express_http_server = () => {
                     res.json(responses.basicOkResponse());
                 });
 
-                console.log(`[${currentDate()}]: DELETE /${req.params.id}`);
+                console.log(`[${currentDate()}]: PUT /${req.params.id}`);
                 connection.execSql(request);
             } else {
-                res.json(responses.errorResponse('No ID!'));
+                res.json(responses.errorResponse('Bad body data'));
                 return;
             }
-        });
-
-        // Update a todo
-        app.put('/:id', (req, res) => {
-            if (req.params.id) {
-                // decouple body
-                const { description, completed } = req.body;
-
-                // check if body has what is needed and 
-                // translate and check completed
-                if (description && [0, 1].includes(trueOrfalse[completed])) {
-                    // date is always when you do the thing
-                    const date = Date.now();
-
-                    const request = new Request(`UPDATE Todo SET description = '${description}', completed = ${trueOrfalse[completed]}, date = ${date} WHERE id = '${req.params.id}'`, (err) => {
-                        if (err) {
-                            res.json(responses.errorResponse(err));
-                            return;
-                        }
-
-                        res.json(responses.basicOkResponse());
-                    });
-
-                    console.log(`[${currentDate()}]: PUT /${req.params.id}`);
-                    connection.execSql(request);
-                } else {
-                    res.json(responses.errorResponse('Bad body data'));
-                    return;
-                }
-            } else {
-                res.json(responses.errorResponse('No ID!'));
-                return;
-            }
-        });
-
-        app.get('/*', (req, res) => {
-            console.log(`[${currentDate()}]: Petition for something we don't need to answer...`);
-            return;
-        });
-
-        app.listen(port, hostname, () => {
-            server_on = true;
-            console.log(`Express server running at ${hostname} and listening to port ${port}`);
-        });
-    });
-}
-
-let retry = 0;
-
-setInterval(async () => {
-    connection = await getConnection();
-
-    if (connection) {
-        if (!server_on) {
-            // Do the connection and trigger express server
-            console.log('Please wait while we are connecting to the database...');
-
-            connection.connect();
-
-            console.log('== DB Connection done! ==');
-            // start express server endpoints
-            express_http_server();
-        }
-    } else {
-        if (retry <= 20) {
-            // Connection not done, retry
-            console.log(`DB Server is OFF, connection in 10 seconds... retry: ${retry++}`);
         } else {
-            // Maximun retries
-            console.log('Maximum connection retries!... exiting');
-            clearInterval();
+            res.json(responses.errorResponse('No ID!'));
+            return;
         }
-    }
+    });
 
-    connection = undefined;
-}, 10 * 1000);
+    app.listen(port, hostname, () => {
+        server_on = true;
+        console.log(`Express server running at ${hostname} and listening to port ${port}`);
+    });
+});
+
+console.log('Please wait while we are connecting to the database...');
+connection.connect();
