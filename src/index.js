@@ -39,12 +39,12 @@ app.use((req, res, next) => {
 
 // Tedious configuration and start up
 const config = {
-    server: process.env.NO_DOCKER === 'true' ? 'localhost' : 'sqltodo',
+    server: process.env.NO_DOCKER === 'true' ? 'localhost' : process.env.DB_HOST,
     authentication: {
         type: 'default',
         options: {
-            userName: 'sa',
-            password: 'yourStrong(!)Password',
+            userName: process.env.DB_USERNAME ? process.env.DB_USERNAME : 'sa',
+            password: process.env.DB_PASSWORD ? process.env.DB_PASSWORD : 'yourStrong(!)Password',
         }
     },
     options: {
@@ -54,39 +54,54 @@ const config = {
         database: 'ToDos',
     },
 };
+// const config = {
+//     server: process.env.NO_DOCKER === 'true' ? 'localhost' : 'sqltodo',
+//     authentication: {
+//         type: 'default',
+//         options: {
+//             userName: 'sa',
+//             password: 'yourStrong(!)Password',
+//         }
+//     },
+//     options: {
+//         encrypt: false,
+//         trustedConnection: true,
+//         trustServerCertificate: true,
+//         database: 'ToDos',
+//     },
+// };
+
+console.log('=============================================');
+console.log('Configuration:');
+console.log(config);
+console.log('=============================================');
+
 
 // connect to the database
 const connection = new Connection(config);
 
 // Trigger express only if connection is sucessfully
+let connected_db = true;
+
 connection.on('connect', (err) => {
     if (err) {
-        console.log('There was an error connecting to the database');
+        console.log('There was an error connecting to the database!');
         console.log(err);
-        // Health check
-        app.get('/health', (req, res) => {
-            console.log('Hit: Health point');
-            res.json(responses.errorResponse('Unable to connect to databse'));
-        });
+        connected_db = false;
     } else {
-        console.log('Connected to the database successfully!');
-        // Health check
-        app.get('/health', (req, res) => {
-            console.log(`[${currentDate()}]: Hit: Health point`);
-            res.json(responses.basicOkResponse);
-        });
+        console.log('== DB Connection done! ==');
     }
-    
+
     // Get all todos
     app.get('/', (req, res) => {
         // Initialice
         var rows = [];
         var rowCount = 0;
 
-        const request = new Request('SELECT id, description, completed, date FROM Todo ORDER BY date DESC', (err, rowNumber) => {
+        const request = new Request('SELECT id, description, completed, date FROM Todo', (err, rowNumber) => {
             // if error on the query
             if (err) {
-                res.json(responses.errorResponse('Error at query'));
+                res.json(responses.errorResponse('Error at query SELECT ALL'));
             }
 
             // Set total of rows
@@ -109,9 +124,22 @@ connection.on('connect', (err) => {
                 rowCount,
             }));
         });
-        
+
         // Execute the SQL
         connection.execSql(request);
+    });
+
+    // Health point
+    app.get('/health', (req, res) => {
+        console.log(`[${currentDate()}]: Hit: Health pointc OK, database check: ${connected_db}`);
+        res.json({ health: true, db_connection: connected_db });
+        return;
+    });
+
+    // Anything else
+    app.get('/*', (req, res) => {
+        console.log(`[${currentDate()}]: Petition for something we don't need to answer...`);
+        return;
     });
 
     // Get one todo
@@ -119,20 +147,20 @@ connection.on('connect', (err) => {
         // Initialice
         var rows = [];
         var rowCount = 0;
-
         if (req.params.id) {
+
             // Search for it
             const request = new Request(`SELECT id, description, completed, date FROM Todo WHERE id='${req.params.id}'`, (err, rowNumber) => {
                 // if error on the query
                 if (err) {
-                    res.json(responses.errorResponse('Error at query'));
+                    res.json(responses.errorResponse('Error at query SELECT ONE'));
                     return;
                 }
-    
+
                 // if not, send everthing to the client
                 rowCount = rowNumber;
             });
-    
+
             request.on('row', (data) => {
                 rows.push({
                     [data[0].metadata.colName]: data[0].value,
@@ -141,7 +169,7 @@ connection.on('connect', (err) => {
                     [data[3].metadata.colName]: Number(data[3].value),
                 });
             });
-    
+
             request.on('requestCompleted', () => {
                 console.log(`GET /${req.params.id}`);
                 res.json(responses.basicOkResponse({
@@ -149,7 +177,6 @@ connection.on('connect', (err) => {
                     rowCount,
                 }));
             });
-    
             console.log(`[${currentDate()}]: GET /${req.params.id}`);
             // Execute the SQL
             connection.execSql(request);
@@ -157,13 +184,12 @@ connection.on('connect', (err) => {
             res.json(responses.errorResponse('No ID!'));
             return;
         }
-
     });
 
     // Add a new todo
     app.post('/', (req, res) => {
         const { description, completed } = req.body;
-        
+
         // Basic check
         if (description === undefined || ![0, 1].includes(trueOrfalse[completed])) {
             res.json(responses.errorResponse('Error on JSON data'));
@@ -173,7 +199,7 @@ connection.on('connect', (err) => {
         // date is always when you do the thing
         const date = Date.now();
 
-        const request = new Request(`INSERT INTO Todo (id, description, completed, date) VALUES ('${uuid.v1()}', '${description.trim()}', ${trueOrfalse[completed]}, ${date})`, (err) => {
+        const request = new Request(`INSERT INTO Todo (id, description, completed, date) VALUES ('${uuid.v1()}', '${description.trim().replace('\'','\'\'')}', ${trueOrfalse[completed]}, ${date})`, (err) => {
             if (err) {
                 res.json(responses.errorResponse(err));
                 return;
@@ -194,7 +220,7 @@ connection.on('connect', (err) => {
                     res.json(responses.errorResponse(err));
                     return;
                 }
-    
+
                 res.json(responses.basicOkResponse());
             });
 
@@ -218,15 +244,15 @@ connection.on('connect', (err) => {
                 // date is always when you do the thing
                 const date = Date.now();
 
-                const request = new Request(`UPDATE Todo SET description = '${description}', completed = ${trueOrfalse[completed]}, date = ${date} WHERE id = '${req.params.id}'`, (err) => {
+                const request = new Request(`UPDATE Todo SET description = '${description.trim().replace('\'','\'\'')}', completed = ${trueOrfalse[completed]}, date = ${date} WHERE id = '${req.params.id}'`, (err) => {
                     if (err) {
                         res.json(responses.errorResponse(err));
                         return;
                     }
-        
+
                     res.json(responses.basicOkResponse());
                 });
-    
+
                 console.log(`[${currentDate()}]: PUT /${req.params.id}`);
                 connection.execSql(request);
             } else {
@@ -240,10 +266,13 @@ connection.on('connect', (err) => {
     });
 
     app.listen(port, hostname, () => {
-        console.log(`Express server running at ${hostname} and listening to port ${port}`);
+        if (connected_db) {
+            console.log(`Express server running at ${hostname} and listening to port ${port} and app working properly...`);
+        } else {
+            console.log(`xpress server running at ${hostname} and listening to port ${port} and app NOT working properly. Database connection failed!`);
+        }
     });
 });
 
-// Do the connection and trigger express server
 console.log('Please wait while we are connecting to the database...');
 connection.connect();
