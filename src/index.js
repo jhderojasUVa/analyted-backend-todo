@@ -98,7 +98,7 @@ connection.on('connect', (err) => {
         var rows = [];
         var rowCount = 0;
 
-        const request = new Request('SELECT id, description, completed, date FROM Todo ORDER BY date DESC', (err, rowNumber) => {
+        const request = new Request('SELECT id, description, completed, date FROM Todo', (err, rowNumber) => {
             // if error on the query
             if (err) {
                 res.json(responses.errorResponse('Error at query SELECT ALL'));
@@ -199,7 +199,7 @@ connection.on('connect', (err) => {
         // date is always when you do the thing
         const date = Date.now();
 
-        const request = new Request(`INSERT INTO Todo (id, description, completed, date) VALUES ('${uuid.v1()}', '${description.trim()}', ${trueOrfalse[completed]}, ${date})`, (err) => {
+        const request = new Request(`INSERT INTO Todo (id, description, completed, date) VALUES ('${uuid.v1()}', '${description.trim().replace('\'','\'\'')}', ${trueOrfalse[completed]}, ${date})`, (err) => {
             if (err) {
                 res.json(responses.errorResponse(err));
                 return;
@@ -244,7 +244,7 @@ connection.on('connect', (err) => {
                 // date is always when you do the thing
                 const date = Date.now();
 
-                const request = new Request(`UPDATE Todo SET description = '${description}', completed = ${trueOrfalse[completed]}, date = ${date} WHERE id = '${req.params.id}'`, (err) => {
+                const request = new Request(`UPDATE Todo SET description = '${description.trim().replace('\'','\'\'')}', completed = ${trueOrfalse[completed]}, date = ${date} WHERE id = '${req.params.id}'`, (err) => {
                     if (err) {
                         res.json(responses.errorResponse(err));
                         return;
@@ -266,8 +266,11 @@ connection.on('connect', (err) => {
     });
 
     app.listen(port, hostname, () => {
-        server_on = true;
-        console.log(`Express server running at ${hostname} and listening to port ${port}`);
+        if (connected_db) {
+            console.log(`Express server running at ${hostname} and listening to port ${port} and app working properly...`);
+        } else {
+            console.log(`xpress server running at ${hostname} and listening to port ${port} and app NOT working properly. Database connection failed!`);
+        }
     });
 });
 
